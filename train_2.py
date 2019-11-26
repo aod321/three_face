@@ -9,9 +9,10 @@ import argparse
 import uuid
 import numpy as np
 from torchvision import transforms
-from dataset import PartsDataset
+from dataset import PartsDataset, Stage2Augmentation
 from preprogress import Resize, ToTensor
 import os
+
 
 uuid = str(uuid.uuid1())[0:8]
 parser = argparse.ArgumentParser()
@@ -21,6 +22,7 @@ parser.add_argument("--display_freq", default=20, type=int, help="Display freque
 parser.add_argument("--lr", default=0.001, type=float, help="Learning rate for optimizer")
 parser.add_argument("--epochs", default=50, type=int, help="Number of epochs to train")
 parser.add_argument("--eval_per_epoch", default=1, type=int, help="eval_per_epoch ")
+parser.add_argument("--workers", default=16, type=int, help="dataloader fetch workers")
 parser.add_argument("--momentum", default=0.9, type=float, help="momentum ")
 parser.add_argument("--weight_decay", default=0.005, type=float, help="weight_decay ")
 parser.add_argument("--model_path", default=None, type=str, help="Last trained model")
@@ -55,12 +57,20 @@ class TrainClass(TemplateModel):
         self.load_dataset(dataset_class, txt_file, root_dir, transform, num_workers)
 
     def load_dataset(self, dataset_class, txt_file, root_dir, transform, num_workers):
-        Dataset = {x: dataset_class(txt_file=txt_file[x],
-                                    root_dir=root_dir,
-                                    transform=transform
-                                    )
-                   for x in ['train', 'val']
-                   }
+
+        data_after = Stage2Augmentation(dataset=dataset_class,
+                                           txt_file=txt_file,
+                                           root_dir=root_dir,
+                                           resize=(64, 64)
+                                        )
+
+        Dataset = data_after.get_dataset()
+        # Dataset = {x: dataset_class(txt_file=txt_file[x],
+        #                             root_dir=root_dir,
+        #                             transform=transform
+        #                             )
+        #            for x in ['train', 'val']
+        #            }
         Loader = {x: DataLoader(Dataset[x], batch_size=args.batch_size,
                                 shuffle=True, num_workers=num_workers)
                   for x in ['train', 'val']
