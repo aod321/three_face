@@ -6,15 +6,58 @@ import torchvision
 from skimage import io
 import jpeg4py as jpeg
 import torch
-from preprogress import Resize, Stage2_ToPILImage, ToTensor, RandomRotation, \
+from preprogress import Stage2Resize, Stage2_ToPILImage, ToTensor, RandomRotation, \
     RandomResizedCrop, Blurfilter, \
     GaussianNoise, RandomAffine
 from torchvision import transforms
 from torch.utils.data import DataLoader, ConcatDataset
 
 
-class PartsDataset(Dataset):
+class Stage1Dataset(Dataset):
     # HelenDataset
+
+    def __init__(self, txt_file, root_dir, transform=None):
+        """
+        Args:
+            txt_file (string): Path to the txt file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.name_list = np.loadtxt(os.path.join(root_dir, txt_file), dtype="str", delimiter=',')
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.name_list)
+
+    def __getitem__(self, idx):
+        img_name = self.name_list[idx, 1].strip()
+        img_path = os.path.join(self.root_dir, 'images',
+                                img_name + '.jpg')
+        labels_path = [os.path.join(self.root_dir, 'labels',
+                                    img_name,
+                                    img_name + "_lbl%.2d.png") % i
+                       for i in range(11)]
+
+        image = io.imread(img_path)
+        image = np.array(image)
+        labels = [io.imread(labels_path[i]) for i in range(11)]
+        labels = np.array(labels)
+        labels = labels[2:10].sum(0)
+        # bg = 255 -labels
+        # bg = 255 - labels[2:10].sum(0)
+        # labels = np.concatenate(([bg.clip(0, 255)], labels.clip(0, 255)), axis=0)
+        sample = {'image': image, 'labels': labels}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
+
+class PartsDataset(Dataset):
+    #     # HelenDataset
     def __len__(self):
         return len(self.name_list)
 
@@ -158,31 +201,31 @@ class Stage2Augmentation(object):
     def set_transformers(self):
         self.transforms = {
             self.augmentation_name[0]: transforms.Compose([
-                Resize(self.resize),
+                Stage2Resize(self.resize),
                 Stage2_ToPILImage(),
                 ToTensor()
             ]),
             self.augmentation_name[1]: transforms.Compose([
-                Resize(self.resize),
+                Stage2Resize(self.resize),
                 Stage2_ToPILImage(),
                 # Choose from tranforms_list randomly
                 transforms.RandomChoice(self.randomchoice['choice1']),
                 ToTensor()
             ]),
             self.augmentation_name[2]: transforms.Compose([
-                Resize(self.resize),
+                Stage2Resize(self.resize),
                 Stage2_ToPILImage(),
                 transforms.RandomChoice(self.randomchoice['choice2']),
                 ToTensor()
             ]),
             self.augmentation_name[3]: transforms.Compose([
-                Resize(self.resize),
+                Stage2Resize(self.resize),
                 Stage2_ToPILImage(),
                 transforms.RandomChoice(self.randomchoice['choice3']),
                 ToTensor()
             ]),
             self.augmentation_name[4]: transforms.Compose([
-                Resize(self.resize),
+                Stage2Resize(self.resize),
                 Stage2_ToPILImage(),
                 transforms.RandomChoice(self.randomchoice['choice4']),
                 ToTensor()

@@ -41,6 +41,32 @@ class Resize(transforms.Resize):
 
         """
         image, labels = sample['image'], sample['labels']
+        labels = np.uint8(labels)
+        labels = TF.resize(TF.to_pil_image(labels), self.size, Image.ANTIALIAS)
+        # image = TF.resize(TF.to_pil_image(image), self.size, Image.ANTIALIAS)
+        resized_image = cv2.resize(image, self.size, interpolation=cv2.INTER_AREA)
+
+        sample = {'image': resized_image,
+                  'labels': labels
+                  }
+        return sample
+
+
+class Stage2Resize(transforms.Resize):
+    """Resize the input PIL Image to the given size.
+             Override the __call__ of transforms.Resize
+    """
+
+    def __call__(self, sample):
+        """
+            Args:
+                 sample:{'image':PIL Image to be resized,'labels':labels to be resized}
+
+             Returns:
+                 sample:{'image':resized PIL Image,'labels': resized PIL label list}
+
+        """
+        image, labels = sample['image'], sample['labels']
         resized_image = np.array([cv2.resize(image[i], self.size, interpolation=cv2.INTER_AREA)
                                   for i in range(len(image))])
         labels = {x: np.array([np.array(TF.resize(TF.to_pil_image(labels[x][r]), self.size, Image.ANTIALIAS))
@@ -75,6 +101,29 @@ class Stage2_ToPILImage(object):
                       for i in range(len(labels[x]))]
                   for x in ['eye1', 'eye2', 'nose', 'mouth']
                   }
+
+        return {'image': image,
+                'labels': labels
+                }
+
+class Stage1ToTensor(transforms.ToTensor):
+    """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
+
+         Override the __call__ of transforms.ToTensor
+    """
+
+    def __call__(self, sample):
+        """
+                Args:
+                    dict of pic (PIL Image or numpy.ndarray): Image to be converted to tensor.
+
+                Returns:y
+                    Tensor: Converted image.
+        """
+        image = sample['image']
+        labels = sample['labels']
+        image = TF.to_tensor(image)
+        labels = TF.to_tensor(labels)
 
         return {'image': image,
                 'labels': labels
