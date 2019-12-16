@@ -6,6 +6,9 @@ Stage2 Parts Segmentation: iCNN
 
 Parts: Eyes(inculde brows), nose, mouth 
 
+## Model
+![three.png](https://i.loli.net/2019/12/16/ydIfUqDTmch8PMz.png)
+
 ## Latest Result
 
 ### Cropper Result
